@@ -24,6 +24,7 @@ import io.cdap.cdap.api.data.format.StructuredRecord;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.api.plugin.PluginConfig;
 import io.cdap.cdap.api.spark.sql.DataFrames;
+import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.cdap.etl.api.PipelineConfigurer;
 import io.cdap.cdap.etl.api.StageConfigurer;
 import io.cdap.cdap.etl.api.batch.SparkCompute;
@@ -45,7 +46,7 @@ import javax.annotation.Nullable;
 @Plugin(type = SparkCompute.PLUGIN_TYPE)
 @Name("ScalaSparkCompute")
 @Description("Executes user-provided Spark code written in Scala that performs RDD to RDD transformation")
-public class  ScalaSparkCompute extends SparkCompute<StructuredRecord, StructuredRecord> {
+public class ScalaSparkCompute extends SparkCompute<StructuredRecord, StructuredRecord> {
 
   private final transient Config config;
   // A strong reference is needed to keep the compiled classes around
@@ -110,10 +111,12 @@ public class  ScalaSparkCompute extends SparkCompute<StructuredRecord, Structure
       // If there is no output schema configured, derive it from the DataFrame
       // Otherwise, assume the DataFrame has the correct schema already
       outputSchema = DataFrames.toSchema((DataType) invokeDataFrameMethod(result, "schema"));
-    }else{
+    } else {
       Schema dataSchema = DataFrames.toSchema((DataType) invokeDataFrameMethod(result, "schema"));
-      if(dataSchema.getFields().size() < outputSchema.getFields().size()){
-        throw new Exception("Invalid schema. Output schema is not matching input schema.");
+      if (dataSchema.getFields().size() < outputSchema.getFields().size()) {
+        FailureCollector collector = context.getFailureCollector();
+        collector.addFailure("Invalid schema.","Output schema is not matching input schema.");
+        collector.getOrThrowException();
       }
     }
     //noinspection unchecked
