@@ -113,9 +113,9 @@ public class ScalaSparkCompute extends SparkCompute<StructuredRecord, Structured
       outputSchema = DataFrames.toSchema((DataType) invokeDataFrameMethod(result, "schema"));
     } else {
       Schema dataSchema = DataFrames.toSchema((DataType) invokeDataFrameMethod(result, "schema"));
-      if (dataSchema.getFields().size() < outputSchema.getFields().size()) {
+      if (!dataSchema.isCompatible(outputSchema)) {
         FailureCollector collector = context.getFailureCollector();
-        collector.addFailure("Invalid schema.","Output schema is not matching input schema.");
+        collector.addFailure("Schema mismatch.", "Output schema is not matching input schema.");
         collector.getOrThrowException();
       }
     }
